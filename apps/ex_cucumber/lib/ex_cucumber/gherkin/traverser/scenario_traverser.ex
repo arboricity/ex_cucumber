@@ -6,28 +6,39 @@ defmodule ExCucumber.Gherkin.Traverser.Scenario do
   alias ExGherkin.AstNdjson.Examples
 
   def run(%ExGherkin.AstNdjson.Scenario{} = s, acc, parse_tree) do
-    s
-    |> relevant_examples
-    |> Enum.each(fn {tags, rows} ->
-      rows
-      |> Enum.each(fn row ->
-        steps =
-          if s.steps do
-            s.steps
-          else
-            IO.warn(
-              "Empty scenario encountered: #{acc.feature_file}:#{s.location.line}:#{s.location.column}"
-            )
+    result =
+      s
+      |> relevant_examples
+      |> Enum.reduce(acc, fn {tags, rows}, ctx ->
+        rows
+        |> Enum.reduce(ctx, fn row, context ->
+          steps =
+            if s.steps do
+              s.steps
+            else
+              IO.warn(
+                "Empty scenario encountered: #{context.feature_file}:#{s.location.line}:#{s.location.column}"
+              )
 
-            []
-          end
+              []
+            end
 
-        steps
-        |> Enum.reduce(Ctx.extra(acc, scenario_meta(acc.extra.context_history, s, tags, row)), fn
-          %ExGherkin.AstNdjson.Step{} = step, a -> MainTraverser.run(step, a, parse_tree)
+          steps
+          |> Enum.reduce(
+            Ctx.extra(context, scenario_meta(context.extra.context_history, s, tags, row)),
+            fn
+              %ExGherkin.AstNdjson.Step{} = step, a -> MainTraverser.run(step, a, parse_tree)
+            end
+          )
         end)
       end)
-    end)
+
+    if Module.has_attribute?(result.module, :on_scenario_success) do
+      on_scenario_success = Module.get_attribute(result.module, :on_scenario_success)
+      if is_function(on_scenario_success, 1), do: on_scenario_success.(result)
+    end
+
+    result
   end
 
   defp example_tables(nil), do: [{nil, [%{}]}]

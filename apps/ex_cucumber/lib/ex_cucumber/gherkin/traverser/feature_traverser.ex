@@ -11,22 +11,33 @@ defmodule ExCucumber.Gherkin.Traverser.Feature do
   def run(%ExGherkin.AstNdjson.Feature{} = f, acc, parse_tree) do
     {background, children} = background(f.children)
 
-    acc =
+    merged_ctx =
       Ctx.extra(
         acc,
         Map.merge(feature_meta(f), %{state: %{}, step_history: [], context_history: []})
       )
 
-    children
-    |> Enum.each(fn child ->
-      acc = MainTraverser.run(background, acc, parse_tree)
+    result =
+      children
+      |> Enum.reduce(merged_ctx, fn child, ctx ->
+        uodated_ctx = MainTraverser.run(background, ctx, parse_tree)
 
-      child
-      |> case do
-        %{scenario: scenario} -> MainTraverser.run(scenario, acc, parse_tree)
-        %{rule: rule} -> MainTraverser.run(rule, acc, parse_tree)
-      end
-    end)
+        child
+        |> case do
+          %{scenario: scenario} ->
+            MainTraverser.run(scenario, uodated_ctx, parse_tree)
+
+          %{rule: rule} ->
+            MainTraverser.run(rule, uodated_ctx, parse_tree)
+        end
+      end)
+
+    if Module.has_attribute?(result.module, :on_feature_success) do
+      on_feature_success = Module.get_attribute(result.module, :on_feature_success)
+      if is_function(on_feature_success, 1), do: on_feature_success.(result)
+    end
+
+    result
   end
 
   defp background([]), do: {nil, []}

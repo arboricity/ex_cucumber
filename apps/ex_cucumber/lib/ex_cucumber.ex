@@ -38,13 +38,19 @@ defmodule ExCucumber do
 
       Module.register_attribute(__MODULE__, :cucumber_expressions, accumulate: true)
       Module.register_attribute(__MODULE__, :meta, accumulate: false)
-      Module.register_attribute(__MODULE__, :feature, accumulate: false)
       Module.register_attribute(__MODULE__, :custom_param_types, accumulate: false)
+      Module.register_attribute(__MODULE__, :feature, accumulate: false)
 
       Module.register_attribute(__MODULE__, :context_nesting, accumulate: true)
 
+      Module.register_attribute(__MODULE__, :on_error, accumulate: false)
+      Module.register_attribute(__MODULE__, :on_feature_success, accumulate: false)
+      Module.register_attribute(__MODULE__, :on_scenario_success, accumulate: false)
+
       Module.put_attribute(__MODULE__, :meta, %{})
       Module.put_attribute(__MODULE__, :custom_param_types, [])
+
+      @on_error fn _ -> :ok end
 
       @before_compile unquote(__MODULE__)
       @after_compile unquote(__MODULE__)
@@ -137,6 +143,8 @@ defmodule ExCucumber do
             {result, def_meta}
           rescue
             e in [ExUnit.AssertionError] ->
+              callback_on_error(ctx)
+
               ExCucumber.Exceptions.StepError.raise(
                 Ctx.extra(ctx, %{
                   def_meta: def_meta,
@@ -152,6 +160,8 @@ defmodule ExCucumber do
               #   {_, :execute_mfa, 2, _} -> :pivot
               #   e -> :default
               # end)
+
+              callback_on_error(ctx)
 
               # This one is more complicated but should work always
               {left, right} =
@@ -188,7 +198,20 @@ defmodule ExCucumber do
 
               s = List.flatten([left, middle, right])
               reraise e, s
+          catch
+            _ ->
+              callback_on_error(ctx)
+
+            _, _ ->
+              callback_on_error(ctx)
           end
+        end
+      end
+
+      defp callback_on_error(context) do
+        if Module.has_attribute?(__MODULE__, :on_error) do
+          on_error = Module.get_attribute(__MODULE__, :on_error)
+          if is_function(on_error, 1), do: on_error.(context)
         end
       end
     end
