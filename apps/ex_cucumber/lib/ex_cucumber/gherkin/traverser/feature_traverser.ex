@@ -22,7 +22,7 @@ defmodule ExCucumber.Gherkin.Traverser.Feature do
     result =
       children
       |> Enum.reduce(merged_ctx, fn child, ctx ->
-        uodated_ctx = MainTraverser.run(background, ctx, parse_tree)
+        updated_ctx = MainTraverser.run(background, ctx, parse_tree)
 
         child
         |> case do
