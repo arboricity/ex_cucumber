@@ -27,10 +27,10 @@ defmodule ExCucumber.Gherkin.Traverser.Feature do
         child
         |> case do
           %{scenario: scenario} ->
-            MainTraverser.run(scenario, uodated_ctx, parse_tree)
+            MainTraverser.run(scenario, updated_ctx, parse_tree)
 
           %{rule: rule} ->
-            MainTraverser.run(rule, uodated_ctx, parse_tree)
+            MainTraverser.run(rule, updated_ctx, parse_tree)
         end
       end)
 
