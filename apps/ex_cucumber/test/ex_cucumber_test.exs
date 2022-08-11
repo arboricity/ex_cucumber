@@ -6,6 +6,7 @@ defmodule ExCucumberTest do
   import ExCucumber.Utils.ProjectCompiler
 
   alias ExCucumber.Exceptions.MatchFailure
+  alias ExCucumber.Exceptions.StepError
 
   alias Support.{
     BookStoreFeature,
@@ -13,6 +14,8 @@ defmodule ExCucumberTest do
     OptionalsAlternatives,
     Params
   }
+
+  import ExUnit.CaptureLog
 
   @non_existent_option_to_bypass_test_setup :non_existent_option_to_bypass_test_setup
   # @invalid_value "This is an absolutely invalid value"
@@ -31,8 +34,20 @@ defmodule ExCucumberTest do
     Params.Custom => "#{@support_module_dir}/params/custom.ex",
     BookStoreFeature.DemonstrateBackgroundUsage =>
       "#{@support_module_dir}/book_store_feature/demonstrate_background_usage.ex",
+    BookStoreFeature.DemonstrateAssertFailureCallback =>
+      "#{@support_module_dir}/book_store_feature/demonstrate_assert_failure_callback.ex",
+    BookStoreFeature.DemonstrateMatchFailureCallback =>
+      "#{@support_module_dir}/book_store_feature/demonstrate_match_failure_callback.ex",
+    BookStoreFeature.DemonstrateRaiseFailureCallback =>
+      "#{@support_module_dir}/book_store_feature/demonstrate_raise_failure_callback.ex",
+    BookStoreFeature.DemonstrateThrowFailureCallback =>
+      "#{@support_module_dir}/book_store_feature/demonstrate_throw_failure_callback.ex",
+    BookStoreFeature.DemonstrateExitFailureCallback =>
+      "#{@support_module_dir}/book_store_feature/demonstrate_exit_failure_callback.ex",
     RuleFeature.DemonstrateRuleUsage =>
-      "#{@support_module_dir}/rule_feature/demonstrate_rule_usage.ex"
+      "#{@support_module_dir}/rule_feature/demonstrate_rule_usage.ex",
+    RuleFeature.DemonstrateSuccessCallbacks =>
+      "#{@support_module_dir}/rule_feature/demonstrate_success_callbacks.ex"
   }
 
   setup_all do
@@ -123,11 +138,87 @@ defmodule ExCucumberTest do
       end)
     end
 
+    @tag test_module: BookStoreFeature.DemonstrateAssertFailureCallback,
+         error_code: :error_raised
+    test "Callback invoked with Assert failure", ctx do
+      {_, log} =
+        with_log([level: :info], fn ->
+          assert_specific_raise(StepError, ctx.error_code, fn ->
+            recompile(ctx: ctx)
+          end)
+        end)
+
+      assert log =~ "Escaped with state"
+    end
+
+    @tag test_module: BookStoreFeature.DemonstrateMatchFailureCallback
+    test "Callback invoked with match failure", ctx do
+      {_, log} =
+        with_log([level: :info], fn ->
+          assert_raise(MatchError, fn ->
+            recompile(ctx: ctx)
+          end)
+        end)
+
+      assert log =~ "Escaped with state"
+    end
+
+    @tag test_module: BookStoreFeature.DemonstrateRaiseFailureCallback
+    test "Callback invoked with raise failure", ctx do
+      {_, log} =
+        with_log([level: :info], fn ->
+          assert_raise(ArithmeticError, "Infinite books!", fn ->
+            recompile(ctx: ctx)
+          end)
+        end)
+
+      assert log =~ "Escaped with state"
+    end
+
+    @tag test_module: BookStoreFeature.DemonstrateThrowFailureCallback
+    test "Callback invoked with throw failure", ctx do
+      {_, log} =
+        with_log([level: :info], fn ->
+          # raises because the exit causes a MatchError in the StepTraverser
+          assert_raise(MatchError, fn ->
+            recompile(ctx: ctx)
+          end)
+        end)
+
+      assert log =~ "Escaped with state"
+    end
+
+    @tag test_module: BookStoreFeature.DemonstrateExitFailureCallback
+    test "Callback invoked with brutal exit failure", ctx do
+      {_, log} =
+        with_log([level: :info], fn ->
+          # raises because the exit causes a MatchError in the StepTraverser
+          assert_raise(MatchError, fn ->
+            recompile(ctx: ctx)
+          end)
+        end)
+
+      assert log =~ "Escaped with state"
+    end
+
     @tag test_module: RuleFeature.DemonstrateRuleUsage
     test "Handles Rule", ctx do
       refute_raise(fn ->
         recompile(ctx: ctx)
       end)
+    end
+
+    @tag test_module: RuleFeature.DemonstrateSuccessCallbacks
+    test "Callbacks invoked on success", ctx do
+      {_, log} =
+        with_log([level: :info], fn ->
+          refute_raise(fn ->
+            recompile(ctx: ctx)
+          end)
+        end)
+
+      assert log =~ "Tidying Scenario"
+      assert log =~ "Tidying Feature"
     end
   end
 

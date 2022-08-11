@@ -9,15 +9,15 @@ defmodule ExCucumber.Gherkin.Traverser.Rule do
   def run(%ExGherkin.AstNdjson.Rule{} = r, acc, parse_tree) do
     {background, children} = background(r.children)
 
-    acc = Ctx.extra(acc, rule_meta(acc, r))
+    merged_ctx = Ctx.extra(acc, rule_meta(acc, r))
 
     children
-    |> Enum.each(fn child ->
-      acc = MainTraverser.run(background, acc, parse_tree)
+    |> Enum.reduce(merged_ctx, fn child, ctx ->
+      updated_ctx = MainTraverser.run(background, ctx, parse_tree)
 
       child
       |> case do
-        %{scenario: scenario} -> MainTraverser.run(scenario, acc, parse_tree)
+        %{scenario: scenario} -> MainTraverser.run(scenario, updated_ctx, parse_tree)
       end
     end)
   end

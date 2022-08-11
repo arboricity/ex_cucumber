@@ -30,3 +30,8 @@ config :ex_cucumber,
     enforce_context?: false
   },
   placeholder: "This is to serve as a placeholder"
+
+config :logger, :console,
+  level: :info,
+  format: "$date $time [$level] $metadata$message\n",
+  metadata: [:error_code]
