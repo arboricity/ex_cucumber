@@ -1,4 +1,4 @@
-defmodule Support.RuleFeature.DemonstrateSuccessCallbackse do
+defmodule Support.RuleFeature.DemonstrateSuccessCallbacks do
   use ExCucumber
   @feature "rule.feature"
   @on_scenario_success &__MODULE__.on_scenario_success/1
