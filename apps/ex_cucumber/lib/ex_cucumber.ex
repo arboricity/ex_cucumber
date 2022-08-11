@@ -34,6 +34,8 @@ defmodule ExCucumber do
         Rule
       }
 
+      require Logger
+
       import unquote(__MODULE__)
 
       Module.register_attribute(__MODULE__, :cucumber_expressions, accumulate: true)
@@ -209,9 +211,42 @@ defmodule ExCucumber do
       end
 
       defp callback_on_error(context) do
-        if Module.has_attribute?(__MODULE__, :on_error) do
-          on_error = Module.get_attribute(__MODULE__, :on_error)
-          if is_function(on_error, 1), do: on_error.(context)
+        case Module.get_attribute(__MODULE__, :on_error) do
+          nil ->
+            :ok
+
+          on_error when is_function(on_error, 1) ->
+            callback(on_error, context)
+
+          _invalid ->
+            raise ArgumentError,
+              message: "invalid `@on_error` module attribute in: " <> inspect(__MODULE__)
+        end
+      end
+
+      defp callback(on_error, context) do
+        try do
+          on_error.(context)
+        rescue
+          e ->
+            Logger.error(
+              "Error [#{inspect(e)}] raised when tring to callback the on_error function in: " <>
+                inspect(__MODULE__)
+            )
+
+            reraise e, __STACKTRACE__
+        catch
+          :exit ->
+            Logger.error(
+              "Error process was `exited` when tring to callback the on_error function in: " <>
+                inspect(__MODULE__)
+            )
+
+          thrown ->
+            Logger.error(
+              "Error [#{inspect(thrown)}] was thrown when tring to callback the on_error function in: " <>
+                inspect(__MODULE__)
+            )
         end
       end
     end

@@ -5,6 +5,8 @@ defmodule ExCucumber.Gherkin.Traverser.Scenario do
   alias ExCucumber.Gherkin.Traverser, as: MainTraverser
   alias ExGherkin.AstNdjson.Examples
 
+  require Logger
+
   def run(%ExGherkin.AstNdjson.Scenario{} = s, acc, parse_tree) do
     result =
       s
@@ -33,12 +35,49 @@ defmodule ExCucumber.Gherkin.Traverser.Scenario do
         end)
       end)
 
-    if Module.has_attribute?(result.module, :on_scenario_success) do
-      on_scenario_success = Module.get_attribute(result.module, :on_scenario_success)
-      if is_function(on_scenario_success, 1), do: on_scenario_success.(result)
-    end
+    callback_on_success(result)
 
     result
+  end
+
+  defp callback_on_success(result) do
+    case Module.get_attribute(result.module, :on_scenario_success) do
+      nil ->
+        :ok
+
+      on_scenario_success when is_function(on_scenario_success, 1) ->
+        callback(on_scenario_success, result)
+
+      _invalid ->
+        raise ArgumentError,
+          message: "invalid `@on_scenario_success` module attribute in: " <> inspect(__MODULE__)
+    end
+  end
+
+  defp callback(on_scenario_success, result) do
+    try do
+      on_scenario_success.(result)
+    rescue
+      e ->
+        Logger.error(
+          "Error [#{inspect(e)}] raised when tring to callback the on_scenario_success function in: " <>
+            inspect(__MODULE__)
+        )
+
+        reraise e, __STACKTRACE__
+    catch
+      :exit ->
+        Logger.error(
+          "Error process was `exited` when tring to callback the on_scenario_success function in: " <>
+            inspect(__MODULE__)
+        )
+
+      thrown ->
+        Logger.error(
+          "Error [#{inspect(thrown)}] was thrown when tring to callback the on_scenario_success function in: " <>
+            inspect(__MODULE__)
+        )
+    end
   end
 
   defp example_tables(nil), do: [{nil, [%{}]}]
