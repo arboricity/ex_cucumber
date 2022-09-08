@@ -42,7 +42,7 @@ defmodule Mix.Tasks.Cucumber do
           Code.compile_file(e)
           Report.record(a, :passed)
         rescue
-          error in @cucumber_related_error_types -> Report.record(a, %{file: e, error: error})
+          error -> Report.record(a, %{file: e, error: error})
         end
       end)
 

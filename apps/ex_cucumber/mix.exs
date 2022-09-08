@@ -1,7 +1,7 @@
 defmodule ExCucumber.MixProject do
   use Mix.Project
 
-  @vsn "0.1.4"
+  @vsn "0.1.5"
   @github "https://github.com/Ajwah/ex_cucumber/tree/master/apps/ex_cucumber"
   @name "ExCucumber"
 
