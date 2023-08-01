@@ -21,6 +21,5 @@ erl_crash.dump
 
 .elixir_ls
 .vscode
-.tool-versions
 apps/playground/
 .DS_Store

@@ -67,6 +67,8 @@ defmodule ExCucumber do
       alias ExCucumber.Gherkin.Keywords, as: GherkinKeywords
 
       def execute_mfa(%Ctx{} = ctx, args) do
+        %Ctx{feature_file: feature_file} = ctx
+
         actual_gherkin_token_as_parsed_from_feature_file = ctx.token
 
         {fun, {def_meta, _}} =
@@ -96,16 +98,16 @@ defmodule ExCucumber do
                 |> case do
                   [] ->
                     raise "No matches found: #{inspect([ids: ctx.extra.fun, meta: @meta],
-                    pretty: true,
-                    limit: :infinity)}"
+                          pretty: true,
+                          limit: :infinity)}"
 
                   [e] ->
                     {e, @meta[e]}
 
                   multiple_matches_ambiguity ->
                     raise "Multiple matches found: #{inspect([multiple_matches_ambiguity: multiple_matches_ambiguity, extra: ctx.extra, meta: @meta],
-                    pretty: true,
-                    limit: :infinity)}"
+                          pretty: true,
+                          limit: :infinity)}"
                 end
             end
           else
@@ -139,13 +141,26 @@ defmodule ExCucumber do
             :gherkin_token_mismatch
           )
         else
+          start_time = System.monotonic_time()
+
           try do
             result = apply(__MODULE__, fun, arg)
-            IO.write("#{IO.ANSI.green()}.#{IO.ANSI.reset()}")
+
+            end_time = System.monotonic_time()
+            duration = end_time - start_time
+            duration_in_ms = System.convert_time_unit(duration, :native, :millisecond)
+
+            IO.write(
+              IO.ANSI.green() <>
+                describe_context(ctx) <>
+                " passed in #{duration_in_ms}ms" <>
+                IO.ANSI.reset() <> "\n"
+            )
+
             {result, def_meta}
           rescue
             e in [ExUnit.AssertionError] ->
-              callback_on_error(ctx)
+              callback_on_error(ctx, start_time)
 
               ExCucumber.Exceptions.StepError.raise(
                 Ctx.extra(ctx, %{
@@ -163,7 +178,7 @@ defmodule ExCucumber do
               #   e -> :default
               # end)
 
-              callback_on_error(ctx)
+              callback_on_error(ctx, start_time)
 
               # This one is more complicated but should work always
               {left, right} =
@@ -202,21 +217,32 @@ defmodule ExCucumber do
               reraise e, s
           catch
             _ ->
-              callback_on_error(ctx)
+              callback_on_error(ctx, start_time)
 
             _, _ ->
-              callback_on_error(ctx)
+              callback_on_error(ctx, start_time)
           end
         end
       end
 
-      defp callback_on_error(context) do
+      defp callback_on_error(ctx, start_time) do
+        end_time = System.monotonic_time()
+        duration = end_time - start_time
+        duration_in_ms = System.convert_time_unit(duration, :native, :millisecond)
+
+        IO.write(
+          IO.ANSI.red() <>
+            describe_context(ctx) <>
+            " failed after #{duration_in_ms}ms" <>
+            IO.ANSI.reset() <> "\n"
+        )
+
         case Module.get_attribute(__MODULE__, :on_error) do
           nil ->
             :ok
 
           on_error when is_function(on_error, 1) ->
-            callback(on_error, context)
+            callback(on_error, ctx)
 
           _invalid ->
             raise ArgumentError,
@@ -224,9 +250,9 @@ defmodule ExCucumber do
         end
       end
 
-      defp callback(on_error, context) do
+      defp callback(on_error, ctx) do
         try do
-          on_error.(context)
+          on_error.(ctx)
         rescue
           e ->
             Logger.error(
@@ -248,6 +274,17 @@ defmodule ExCucumber do
                 inspect(__MODULE__)
             )
         end
+      end
+
+      defp describe_context(ctx) do
+        %Ctx{extra: extra} = ctx
+
+        [
+          {"Feature", get_in(extra, [:feature, :title])},
+          {"Scenario", get_in(extra, [:scenario, :title])}
+        ]
+        |> Enum.reject(fn {title, value} -> is_nil(value) end)
+        |> Enum.map_join(" ", fn {title, value} -> title <> " " <> inspect(value) end)
       end
     end
   end
