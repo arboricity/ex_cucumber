@@ -154,7 +154,7 @@ defmodule ExCucumber do
               IO.ANSI.green() <>
                 describe_context(ctx) <>
                 " passed in #{duration_in_ms}ms" <>
-                IO.ANSI.reset() <> "\n"
+                IO.ANSI.reset() <> "\n\n"
             )
 
             {result, def_meta}
@@ -234,7 +234,7 @@ defmodule ExCucumber do
           IO.ANSI.red() <>
             describe_context(ctx) <>
             " failed after #{duration_in_ms}ms" <>
-            IO.ANSI.reset() <> "\n"
+            IO.ANSI.reset() <> "\n\n"
         )
 
         case Module.get_attribute(__MODULE__, :on_error) do
@@ -281,10 +281,11 @@ defmodule ExCucumber do
 
         [
           {"Feature", get_in(extra, [:feature, :title])},
-          {"Scenario", get_in(extra, [:scenario, :title])}
+          {"Scenario", get_in(extra, [:scenario, :title])},
+          {"Step", get_in(extra, [:cucumber_expression])}
         ]
         |> Enum.reject(fn {title, value} -> is_nil(value) end)
-        |> Enum.map_join(" ", fn {title, value} -> title <> " " <> inspect(value) end)
+        |> Enum.map_join("\n", fn {title, value} -> title <> " " <> inspect(value) end)
       end
     end
   end
