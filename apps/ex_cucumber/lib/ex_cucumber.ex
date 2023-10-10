@@ -160,13 +160,13 @@ defmodule ExCucumber do
             {result, def_meta}
           rescue
             error ->
-              callback_on_error(ctx, start_time)
-
-              error_code = :error_raised
-              updated_ctx = Ctx.extra(ctx, %{def_meta: def_meta, raised_error: error})
-              exception = ExCucumber.Exceptions.StepError.exception({error_code, updated_ctx})
-              ExCucumber.Exceptions.StepError.message(exception)
-              reraise error, __STACKTRACE__
+              ExCucumber.Exceptions.StepError.raise(
+                Ctx.extra(ctx, %{
+                  def_meta: def_meta,
+                  raised_error: error
+                }),
+                :error_raised
+              )
           catch
             _ ->
               callback_on_error(ctx, start_time)

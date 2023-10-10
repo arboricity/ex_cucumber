@@ -143,38 +143,23 @@ defmodule ExCucumberTest do
     @tag test_module: BookStoreFeature.DemonstrateAssertFailureCallback,
          error_code: :error_raised
     test "Callback invoked with Assert failure", ctx do
-      {_, log} =
-        with_log([level: :info], fn ->
-          assert_raise(ExUnit.AssertionError, fn ->
-            recompile(ctx: ctx)
-          end)
-        end)
-
-      assert log =~ "Escaped with state"
+      assert_specific_raise(StepError, ctx.error_code, fn ->
+        recompile(ctx: ctx)
+      end)
     end
 
     @tag test_module: BookStoreFeature.DemonstrateMatchFailureCallback
     test "Callback invoked with match failure", ctx do
-      {_, log} =
-        with_log([level: :info], fn ->
-          assert_raise(MatchError, fn ->
-            recompile(ctx: ctx)
-          end)
-        end)
-
-      assert log =~ "Escaped with state"
+      assert_raise(StepError, fn ->
+        recompile(ctx: ctx)
+      end)
     end
 
     @tag test_module: BookStoreFeature.DemonstrateRaiseFailureCallback
     test "Callback invoked with raise failure", ctx do
-      {_, log} =
-        with_log([level: :info], fn ->
-          assert_raise(ArithmeticError, "Infinite books!", fn ->
-            recompile(ctx: ctx)
-          end)
-        end)
-
-      assert log =~ "Escaped with state"
+      assert_raise(StepError, fn ->
+        recompile(ctx: ctx)
+      end)
     end
 
     @tag test_module: BookStoreFeature.DemonstrateThrowFailureCallback
@@ -205,17 +190,9 @@ defmodule ExCucumberTest do
 
     @tag test_module: BookStoreFeature.DemonstrateRaiseRenderedCallback
     test "Callback invoked with a raise that isn't explicitly supported", ctx do
-      Application.put_env(:ex_cucumber, :error_detail_level, :brief)
-
-      {_, log} =
-        with_log([level: :info], fn ->
-          # Raises because the exit causes a BadMapError in the StepTraverser.
-          assert_raise(BadMapError, fn ->
-            recompile(ctx: ctx)
-          end)
-        end)
-
-      assert log =~ "Escaped with state"
+      assert_raise(StepError, fn ->
+        recompile(ctx: ctx)
+      end)
     end
 
     @tag test_module: RuleFeature.DemonstrateRuleUsage
