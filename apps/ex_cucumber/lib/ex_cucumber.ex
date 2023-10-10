@@ -98,16 +98,16 @@ defmodule ExCucumber do
                 |> case do
                   [] ->
                     raise "No matches found: #{inspect([ids: ctx.extra.fun, meta: @meta],
-                          pretty: true,
-                          limit: :infinity)}"
+                    pretty: true,
+                    limit: :infinity)}"
 
                   [e] ->
                     {e, @meta[e]}
 
                   multiple_matches_ambiguity ->
                     raise "Multiple matches found: #{inspect([multiple_matches_ambiguity: multiple_matches_ambiguity, extra: ctx.extra, meta: @meta],
-                          pretty: true,
-                          limit: :infinity)}"
+                    pretty: true,
+                    limit: :infinity)}"
                 end
             end
           else
@@ -159,62 +159,14 @@ defmodule ExCucumber do
 
             {result, def_meta}
           rescue
-            e in [ExUnit.AssertionError] ->
-              callback_on_error(ctx, start_time)
-
+            error ->
               ExCucumber.Exceptions.StepError.raise(
                 Ctx.extra(ctx, %{
                   def_meta: def_meta,
-                  raised_error: e
+                  raised_error: error
                 }),
                 :error_raised
               )
-
-            e ->
-              # This is easier but not sure it applies to all stack traces
-              # __STACKTRACE__
-              # |> Enum.chunk_by(fn
-              #   {_, :execute_mfa, 2, _} -> :pivot
-              #   e -> :default
-              # end)
-
-              callback_on_error(ctx, start_time)
-
-              # This one is more complicated but should work always
-              {left, right} =
-                __STACKTRACE__
-                |> Enum.reduce({:append_to_left, {[], []}}, fn
-                  e = {_, :execute_mfa, 2, _}, {_, {left, right}} ->
-                    {:append_to_right, {left, [right | [e]]}}
-
-                  e, {state, {left, right}} ->
-                    {left, right} =
-                      state
-                      |> case do
-                        :append_to_left -> {[left | [e]], right}
-                        :append_to_right -> {left, [right | [e]]}
-                      end
-
-                    {state, {left, right}}
-                end)
-                |> elem(1)
-
-              f = args.feature_file
-
-              middle = [
-                {def_meta.cucumber_expression.meta.module,
-                 def_meta.cucumber_expression.meta.gherkin_keyword,
-                 [def_meta.cucumber_expression.formulation],
-                 [
-                   file: def_meta.cucumber_expression.meta.file,
-                   line: def_meta.cucumber_expression.meta.line_nr
-                 ]},
-                {:feature_file, :line, [f.text],
-                 [file: ExCucumber.Config.feature_path(@feature), line: f.location.line]}
-              ]
-
-              s = List.flatten([left, middle, right])
-              reraise e, s
           catch
             _ ->
               callback_on_error(ctx, start_time)

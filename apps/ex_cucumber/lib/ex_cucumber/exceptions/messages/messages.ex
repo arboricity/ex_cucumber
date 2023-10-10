@@ -96,4 +96,8 @@ defmodule ExCucumber.Exceptions.Messages do
       true -> raise f
     end
   end
+
+  def render(error, detail_level: _detail_level) do
+    {@step_error_heading, inspect(error)}
+  end
 end

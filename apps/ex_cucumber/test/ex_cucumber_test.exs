@@ -40,6 +40,8 @@ defmodule ExCucumberTest do
       "#{@support_module_dir}/book_store_feature/demonstrate_match_failure_callback.ex",
     BookStoreFeature.DemonstrateRaiseFailureCallback =>
       "#{@support_module_dir}/book_store_feature/demonstrate_raise_failure_callback.ex",
+    BookStoreFeature.DemonstrateRaiseRenderedCallback =>
+      "#{@support_module_dir}/book_store_feature/demonstrate_raise_rendered_callback.ex",
     BookStoreFeature.DemonstrateThrowFailureCallback =>
       "#{@support_module_dir}/book_store_feature/demonstrate_throw_failure_callback.ex",
     BookStoreFeature.DemonstrateExitFailureCallback =>
@@ -141,38 +143,23 @@ defmodule ExCucumberTest do
     @tag test_module: BookStoreFeature.DemonstrateAssertFailureCallback,
          error_code: :error_raised
     test "Callback invoked with Assert failure", ctx do
-      {_, log} =
-        with_log([level: :info], fn ->
-          assert_specific_raise(StepError, ctx.error_code, fn ->
-            recompile(ctx: ctx)
-          end)
-        end)
-
-      assert log =~ "Escaped with state"
+      assert_specific_raise(StepError, ctx.error_code, fn ->
+        recompile(ctx: ctx)
+      end)
     end
 
     @tag test_module: BookStoreFeature.DemonstrateMatchFailureCallback
     test "Callback invoked with match failure", ctx do
-      {_, log} =
-        with_log([level: :info], fn ->
-          assert_raise(MatchError, fn ->
-            recompile(ctx: ctx)
-          end)
-        end)
-
-      assert log =~ "Escaped with state"
+      assert_raise(StepError, fn ->
+        recompile(ctx: ctx)
+      end)
     end
 
     @tag test_module: BookStoreFeature.DemonstrateRaiseFailureCallback
     test "Callback invoked with raise failure", ctx do
-      {_, log} =
-        with_log([level: :info], fn ->
-          assert_raise(ArithmeticError, "Infinite books!", fn ->
-            recompile(ctx: ctx)
-          end)
-        end)
-
-      assert log =~ "Escaped with state"
+      assert_raise(StepError, fn ->
+        recompile(ctx: ctx)
+      end)
     end
 
     @tag test_module: BookStoreFeature.DemonstrateThrowFailureCallback
@@ -199,6 +186,13 @@ defmodule ExCucumberTest do
         end)
 
       assert log =~ "Escaped with state"
+    end
+
+    @tag test_module: BookStoreFeature.DemonstrateRaiseRenderedCallback
+    test "Callback invoked with a raise that isn't explicitly supported", ctx do
+      assert_raise(StepError, fn ->
+        recompile(ctx: ctx)
+      end)
     end
 
     @tag test_module: RuleFeature.DemonstrateRuleUsage

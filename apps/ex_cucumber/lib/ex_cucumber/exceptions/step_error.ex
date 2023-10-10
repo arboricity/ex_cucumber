@@ -16,7 +16,7 @@ defmodule ExCucumber.Exceptions.StepError do
 
   @impl true
   def message(%__MODULE__{} = e) do
-    Messages.render(e)
+    Messages.render(e, false)
   end
 
   def raise(error_code) do
