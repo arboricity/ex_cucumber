@@ -40,6 +40,8 @@ defmodule ExCucumberTest do
       "#{@support_module_dir}/book_store_feature/demonstrate_match_failure_callback.ex",
     BookStoreFeature.DemonstrateRaiseFailureCallback =>
       "#{@support_module_dir}/book_store_feature/demonstrate_raise_failure_callback.ex",
+    BookStoreFeature.DemonstrateRaiseRenderedCallback =>
+      "#{@support_module_dir}/book_store_feature/demonstrate_raise_rendered_callback.ex",
     BookStoreFeature.DemonstrateThrowFailureCallback =>
       "#{@support_module_dir}/book_store_feature/demonstrate_throw_failure_callback.ex",
     BookStoreFeature.DemonstrateExitFailureCallback =>
@@ -199,6 +201,19 @@ defmodule ExCucumberTest do
         end)
 
       assert log =~ "Escaped with state"
+    end
+
+    @tag test_module: BookStoreFeature.DemonstrateRaiseRenderedCallback
+    test "Callback invoked with a raise that isn't explicitly supported", ctx do
+      Application.put_env(:ex_cucumber, :error_detail_level, :brief)
+
+      # Raises because the exit causes a BadMapError in the StepTraverser.
+      assert_raise(BadMapError, fn ->
+        recompile(ctx: ctx)
+      end)
+
+      # Test how the error is going to be rendered.
+      assert ExCucumber.Exceptions.Messages.render(BadMapError, false) == "BadMapError\n"
     end
 
     @tag test_module: RuleFeature.DemonstrateRuleUsage

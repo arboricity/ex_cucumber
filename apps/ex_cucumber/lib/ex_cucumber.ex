@@ -98,16 +98,16 @@ defmodule ExCucumber do
                 |> case do
                   [] ->
                     raise "No matches found: #{inspect([ids: ctx.extra.fun, meta: @meta],
-                          pretty: true,
-                          limit: :infinity)}"
+                    pretty: true,
+                    limit: :infinity)}"
 
                   [e] ->
                     {e, @meta[e]}
 
                   multiple_matches_ambiguity ->
                     raise "Multiple matches found: #{inspect([multiple_matches_ambiguity: multiple_matches_ambiguity, extra: ctx.extra, meta: @meta],
-                          pretty: true,
-                          limit: :infinity)}"
+                    pretty: true,
+                    limit: :infinity)}"
                 end
             end
           else

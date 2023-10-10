@@ -41,7 +41,7 @@ defmodule ExCucumber.Config do
   def project_root, do: @project_root
   def macro_style, do: @macro_style
   def macro_style(:counterpart), do: :counterparts |> macro_styles |> List.first()
-  def error_detail_level, do: @error_detail_level
+  def error_detail_level, do: Application.get_env(:ex_cucumber, :error_detail_level)
 
   def all_best_practices, do: @all_best_practices
   def best_practices, do: @best_practices
