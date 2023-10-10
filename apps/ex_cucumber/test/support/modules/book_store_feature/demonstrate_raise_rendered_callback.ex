@@ -1,8 +1,13 @@
 defmodule Support.BookStoreFeature.DemonstrateRaiseRenderedCallback do
   use ExCucumber
   @feature "book_store.feature"
+  @on_error &__MODULE__.escape/1
 
   require Logger
+
+  def escape(context) do
+    Logger.error("Escaped with state #{inspect(context.extra.state)}")
+  end
 
   defmodule BookStore do
     def find_by_author(books, author) do

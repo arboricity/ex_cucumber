@@ -145,7 +145,7 @@ defmodule ExCucumberTest do
     test "Callback invoked with Assert failure", ctx do
       {_, log} =
         with_log([level: :info], fn ->
-          assert_specific_raise(StepError, ctx.error_code, fn ->
+          assert_raise(ExUnit.AssertionError, fn ->
             recompile(ctx: ctx)
           end)
         end)
@@ -207,13 +207,15 @@ defmodule ExCucumberTest do
     test "Callback invoked with a raise that isn't explicitly supported", ctx do
       Application.put_env(:ex_cucumber, :error_detail_level, :brief)
 
-      # Raises because the exit causes a BadMapError in the StepTraverser.
-      assert_raise(BadMapError, fn ->
-        recompile(ctx: ctx)
-      end)
+      {_, log} =
+        with_log([level: :info], fn ->
+          # Raises because the exit causes a BadMapError in the StepTraverser.
+          assert_raise(BadMapError, fn ->
+            recompile(ctx: ctx)
+          end)
+        end)
 
-      # Test how the error is going to be rendered.
-      assert ExCucumber.Exceptions.Messages.render(BadMapError, false) == "BadMapError\n"
+      assert log =~ "Escaped with state"
     end
 
     @tag test_module: RuleFeature.DemonstrateRuleUsage
